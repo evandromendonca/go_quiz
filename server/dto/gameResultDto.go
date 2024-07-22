@@ -5,24 +5,6 @@ import (
 	"time"
 )
 
-type GameDto struct {
-	Id          string        `json:"id"`
-	Username    string        `json:"username"`
-	Questions   []QuestionDto `json:"questions"`
-	CreatedDate time.Time     `json:"createdDate"`
-}
-
-type QuestionDto struct {
-	Id          int      `json:"id"`
-	Description string   `json:"description"`
-	Options     []string `json:"options"`
-}
-
-type AnswerDto struct {
-	QuestionId     int `json:"questionId"`
-	SelectedOption int `json:"selectedOption"`
-}
-
 type GameResultDto struct {
 	Id               string              `json:"id"`
 	Username         string              `json:"username"`
@@ -32,49 +14,6 @@ type GameResultDto struct {
 	CompletedDate    time.Time           `json:"completedDate"`
 	PercentileScore  int                 `json:"percentileScore"`
 	RankingPosition  int                 `json:"rankingPosition"`
-}
-
-type QuestionResultDto struct {
-	Question       QuestionDto
-	CorrectOption  int
-	SelectedOption int
-	IsCorrect      bool
-}
-
-type NewUserDto struct {
-	Username string
-	Password string
-}
-
-type LeaderboardDto struct {
-	Username     string
-	HighestScore int
-}
-
-func (o *GameDto) FromGame(game models.Game) {
-	o.Id = game.Id
-	o.Username = game.User.Username
-	o.CreatedDate = game.CreatedDate
-	o.Questions = []QuestionDto{}
-
-	for _, q := range game.Questions {
-		o.Questions = append(o.Questions, QuestionDto{
-			Id:          q.Id,
-			Description: q.Description,
-			Options:     q.Options,
-		})
-	}
-}
-
-func (o *AnswerDto) ToAnswer() (answer models.Answer) {
-	answer = models.Answer{
-		Question: models.Question{
-			Id: o.QuestionId,
-		},
-		SelectedOption: o.SelectedOption,
-	}
-
-	return answer
 }
 
 func (o *GameResultDto) FromGame(game models.Game) {

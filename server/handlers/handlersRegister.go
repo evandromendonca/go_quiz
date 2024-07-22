@@ -32,7 +32,7 @@ func RegisterHandlers(e *echo.Echo,
 		gameGroup.GET("/leaderboard/:numQuestions", gameHandler.handleGetLeaderboard)
 		useBasicAuth(gameGroup, userRepository)
 		gameGroup.GET("", gameHandler.handleGetGame)
-		gameGroup.POST("", gameHandler.handlePostGame)
+		gameGroup.POST("/:numQuestions", gameHandler.handlePostGame)
 		gameGroup.POST("/answers", gameHandler.handlePostGameAnswers)
 	}
 }

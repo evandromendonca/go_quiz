@@ -55,6 +55,13 @@ func (h GameHandler) handlePostGame(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
 
+	// parsing input
+	param := c.Param("numQuestions")
+	numQuestions, err := strconv.Atoi(param)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "NumQuestions must be a number")
+	}
+
 	// check if there is an open game for that user, and if so throw
 	if _, err := h.GameRepository.GetOngoingUserGame(user.Id); err == nil {
 		return c.JSON(http.StatusBadRequest, "there is an ongoing game, finish the game before creating a new one")
@@ -65,11 +72,10 @@ func (h GameHandler) handlePostGame(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err)
 	}
 
-	numQuestions := 4 // hard-coded to 4 questions at this moment
 	game := models.Game{
 		User:         user,
 		NumQuestions: numQuestions,
-		Questions:    getRandomQuestions(possibleQuestions, numQuestions),
+		Questions:    h.getRandomQuestions(possibleQuestions, numQuestions),
 	}
 
 	h.GameRepository.Create(game)
@@ -99,7 +105,7 @@ func (h GameHandler) handlePostGameAnswers(c echo.Context) error {
 	}
 
 	// update game with answers
-	if err = updateGameAnswers(&ongoingGame, answersDto); err != nil {
+	if err = h.updateGameAnswers(&ongoingGame, answersDto); err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
@@ -110,7 +116,7 @@ func (h GameHandler) handlePostGameAnswers(c echo.Context) error {
 		return c.JSON(http.StatusNotFound, err.Error())
 	}
 
-	position, leaderboardItem := rankGame(&ongoingGame, leaderboard)
+	position, leaderboardItem := h.rankGame(&ongoingGame, leaderboard)
 
 	h.GameRepository.InsertLeaderboardItem(numQuestions, position, leaderboardItem)
 
@@ -148,7 +154,7 @@ func (h GameHandler) handleGetLeaderboard(c echo.Context) error {
 	return c.JSON(http.StatusOK, leaderboardDto)
 }
 
-func getRandomQuestions(questions []models.Question, num int) []models.Question {
+func (h GameHandler) getRandomQuestions(questions []models.Question, num int) []models.Question {
 	rand.Shuffle(len(questions), func(i, j int) { questions[i], questions[j] = questions[j], questions[i] })
 
 	if num > len(questions) {
@@ -158,7 +164,7 @@ func getRandomQuestions(questions []models.Question, num int) []models.Question 
 	return questions[:num]
 }
 
-func updateGameAnswers(game *models.Game, answersDto []dto.AnswerDto) error {
+func (h GameHandler) updateGameAnswers(game *models.Game, answersDto []dto.AnswerDto) error {
 	if len(game.Questions) != len(answersDto) {
 		return errors.New("number of answers is different from the number of questions")
 	}
@@ -197,7 +203,7 @@ func updateGameAnswers(game *models.Game, answersDto []dto.AnswerDto) error {
 	return nil
 }
 
-func rankGame(game *models.Game, leaderboard []models.LeaderboardItem) (int, models.LeaderboardItem) {
+func (h GameHandler) rankGame(game *models.Game, leaderboard []models.LeaderboardItem) (int, models.LeaderboardItem) {
 	// find the user in the board
 	userPosition := -1
 	for i, r := range leaderboard {
