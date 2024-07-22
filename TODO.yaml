@@ -1,0 +1,18 @@
+API
+
+- Basic auth
+    receive <user:password> in the header base64 encoded
+    on the endpoints, if the user does not exist, return a 401
+
+GET  /user (no auth)
+POST /user (no auth)
+
+GET  /game (basic auth)
+GET  /game/leaderboard/:numQuestions (no auth)
+POST /game/answers (basic auth)
+
+
+TODO:
+- move business logic away from the repositories
+- unit tests
+- questions repository? CRUD for questions?
