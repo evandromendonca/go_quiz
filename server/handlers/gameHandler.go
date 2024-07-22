@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"errors"
 	"fasttrack_quiz/dto"
 	"fasttrack_quiz/models"
 	"fmt"
@@ -59,7 +58,7 @@ func (h GameHandler) handlePostGame(c echo.Context) error {
 	param := c.Param("numQuestions")
 	numQuestions, err := strconv.Atoi(param)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "NumQuestions must be a number")
+		return echo.NewHTTPError(http.StatusBadRequest, "number of questions must be a number")
 	}
 
 	// check if there is an open game for that user, and if so throw
@@ -111,10 +110,7 @@ func (h GameHandler) handlePostGameAnswers(c echo.Context) error {
 
 	// calcualte and update leaderboard
 	numQuestions := len(ongoingGame.Questions)
-	leaderboard, err := h.GameRepository.GetLeaderboard(numQuestions)
-	if err != nil {
-		return c.JSON(http.StatusNotFound, err.Error())
-	}
+	leaderboard, _ := h.GameRepository.GetLeaderboard(numQuestions)
 
 	position, leaderboardItem := h.rankGame(&ongoingGame, leaderboard)
 
@@ -145,10 +141,9 @@ func (h GameHandler) handleGetLeaderboard(c echo.Context) error {
 
 	var leaderboardDto = []dto.LeaderboardDto{}
 	for _, r := range leaderboard {
-		leaderboardDto = append(leaderboardDto, dto.LeaderboardDto{
-			Username:     r.User.Username,
-			HighestScore: r.HighestScore,
-		})
+		leaderboardItemDto := dto.LeaderboardDto{}
+		leaderboardItemDto.FromLeaderboard(r)
+		leaderboardDto = append(leaderboardDto, leaderboardItemDto)
 	}
 
 	return c.JSON(http.StatusOK, leaderboardDto)
@@ -166,7 +161,8 @@ func (h GameHandler) getRandomQuestions(questions []models.Question, num int) []
 
 func (h GameHandler) updateGameAnswers(game *models.Game, answersDto []dto.AnswerDto) error {
 	if len(game.Questions) != len(answersDto) {
-		return errors.New("number of answers is different from the number of questions")
+		return fmt.Errorf("number of answers %d is different from the number of questions %d",
+			len(answersDto), len(game.Questions))
 	}
 
 	var answers []models.Answer
@@ -197,7 +193,7 @@ func (h GameHandler) updateGameAnswers(game *models.Game, answersDto []dto.Answe
 	}
 
 	game.Answers = answers
-	game.ScorePercentage = int(float64(correctCount) / float64(len(game.Questions)) * 100)
+	game.ScorePercentage = float64(correctCount) / float64(len(game.Questions)) * 100
 	game.CompletedDate = time.Now()
 
 	return nil

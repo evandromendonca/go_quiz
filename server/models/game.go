@@ -10,7 +10,7 @@ type Game struct {
 	Answers         []Answer
 	CreatedDate     time.Time
 	CompletedDate   time.Time
-	ScorePercentage int
+	ScorePercentage float64
 	RankingPosition int
 	PercentileScore int
 }

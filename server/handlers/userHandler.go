@@ -39,7 +39,7 @@ func (h UserHandler) handleGetUser(c echo.Context) error {
 
 func (h UserHandler) handlePostUser(c echo.Context) error {
 	// parsing input
-	var newUserDto dto.NewUserDto
+	var newUserDto dto.UserDto
 	err := c.Bind(&newUserDto)
 	if err != nil {
 		return c.String(http.StatusBadRequest, "wrong model")

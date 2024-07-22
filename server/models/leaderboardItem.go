@@ -2,5 +2,5 @@ package models
 
 type LeaderboardItem struct {
 	User         User
-	HighestScore int
+	HighestScore float64
 }

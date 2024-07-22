@@ -4,99 +4,55 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"bufio"
-	"bytes"
-	"encoding/json"
 	"fasttrack_quiz_cli/dto"
 	"fasttrack_quiz_cli/util"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
-	"strconv"
 
 	"github.com/spf13/cobra"
 )
 
 // quizCmd represents the quiz command
 var quizCmd = &cobra.Command{
-	Use:   "quiz",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Use:   "quiz [username]",
+	Short: "Start the GoQuiz game",
+	Long:  `Start the GoQuiz game`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("quiz called")
+		if len(args) < 1 {
+			fmt.Println("Username argument required")
+			return
+		}
+		username := args[0]
 
-		scanner := bufio.NewScanner(os.Stdin)
-		fmt.Println("what's your username")
-		scanner.Scan()
-
-		username := scanner.Text()
-
-		fmt.Println("username:", username)
-
-		fmt.Println("type your password:")
+		fmt.Printf("Type your password for %s:\n", username)
 		password := util.ReadPassword()
 
-		fmt.Println("password:", password)
+		response, game := util.GetJsonAuth[dto.GameDto]("game", username, password)
 
-		req, err := http.NewRequest(http.MethodGet, "http://localhost:8080/game", nil)
-		if err != nil {
-			fmt.Println("error building request:", err)
-			os.Exit(1)
+		util.EnsureAuthorized(response.StatusCode)
+
+		if !util.IsSuccessStatusCode(response.StatusCode) {
+			game = createNewGame(username, password)
+		} else {
+			fmt.Println("Ongoing quiz found, please complete this one before starting another one")
 		}
-
-		req.SetBasicAuth(username, password)
-
-		res, err := http.DefaultClient.Do(req)
-		if err != nil {
-			fmt.Println("error calling GET game:", err)
-			os.Exit(1)
-		}
-
-		resBody, err := io.ReadAll(res.Body)
-		if err != nil {
-			fmt.Printf("client: could not read response body: %s\n", err)
-			os.Exit(1)
-		}
-
-		fmt.Println(string(resBody))
-
-		var game dto.GameDto
-		json.Unmarshal(resBody, &game)
 
 		answers := []dto.AnswerDto{}
 
 		for _, q := range game.Questions {
-			fmt.Println("Question:", q.Description)
+			fmt.Printf("\nQuestion: %s\n", q.Description)
 			for i, o := range q.Options {
-				fmt.Println("Option", i, ":", o)
+				fmt.Printf("Option %d: %s\n", i+1, o)
 			}
-
-			var optionSelected int = 0
-			for {
-				fmt.Println("Select your answer (option number [0..3]):")
-				scanner.Scan()
-				optionSelected, err = strconv.Atoi(scanner.Text())
-				if err != nil || optionSelected < 0 || optionSelected > 3 {
-					fmt.Println("Option must be a number between 0 to 3")
-					continue
-				}
-				fmt.Println("Your options is:", optionSelected)
-				break
-			}
-
+			optionSelected := util.GetInputNumber("Select your answer", 1, 4) - 1
 			answers = append(answers, dto.AnswerDto{QuestionId: q.Id, SelectedOption: optionSelected})
 		}
 
 		gameResult := postGameAnswers(username, password, answers)
 
-		fmt.Printf("%d%% of your answers where correct!\n", gameResult.ScorePercentage)
-		fmt.Printf("You were better than: %d%% of all users that answered %d questions. Your ranking position is %d!!!\n",
+		fmt.Printf("\n%d%% of your answers where correct!\n", gameResult.ScorePercentage)
+		fmt.Printf("\nYou were better than: %d%% of all users that answered %d questions. Your ranking position is %d!!!\n",
 			gameResult.PercentileScore, len(gameResult.QuestionsResults), gameResult.RankingPosition+1)
 	},
 }
@@ -105,34 +61,28 @@ func init() {
 	rootCmd.AddCommand(quizCmd)
 }
 
+func createNewGame(username, password string) dto.GameDto {
+	numQuestions := util.GetInputNumber("No ongoing quiz found, creating a new one. Select the number of questions", 1, 15)
+
+	response, game := util.PostJsonAuth[dto.GameDto](fmt.Sprintf("game/%d", numQuestions), username, password, nil)
+
+	if !util.IsSuccessStatusCode(response.StatusCode) {
+		body, _ := io.ReadAll(response.Body)
+		fmt.Printf("\n%d: error creating game. %s\n", response.StatusCode, string(body))
+		os.Exit(1)
+	}
+
+	return game
+}
+
 func postGameAnswers(username, password string, answers []dto.AnswerDto) dto.GameResultDto {
-	postBody, _ := json.Marshal(answers)
+	response, gameResult := util.PostJsonAuth[dto.GameResultDto]("game/answers", username, password, answers)
 
-	req, err := http.NewRequest(http.MethodPost, "http://localhost:8080/game/answers", bytes.NewBuffer(postBody))
-	if err != nil {
-		fmt.Println("error building request:", err)
+	if !util.IsSuccessStatusCode(response.StatusCode) {
+		body, _ := io.ReadAll(response.Body)
+		fmt.Printf("\n%d: error saving answers. %s\n", response.StatusCode, string(body))
 		os.Exit(1)
 	}
-
-	req.SetBasicAuth(username, password)
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		fmt.Println("error calling POST game answers:", err)
-		os.Exit(1)
-	}
-
-	resBody, err := io.ReadAll(res.Body)
-	if err != nil {
-		fmt.Printf("client: could not read response body: %s\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Println(string(resBody))
-
-	var gameResult dto.GameResultDto
-	json.Unmarshal(resBody, &gameResult)
 
 	return gameResult
 }

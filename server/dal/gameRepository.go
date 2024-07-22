@@ -81,6 +81,7 @@ func (r GameRepository) InsertLeaderboardItem(numQuestions, position int, leader
 	}
 
 	// insert in the correct position of the slice
-	r.db.Leaderboards[numQuestions] = append(leaderboardWithoutUser[:position],
-		append([]models.LeaderboardItem{leaderboardItem}, leaderboardWithoutUser[position:]...)...)
+	r.db.Leaderboards[numQuestions] = append(leaderboardWithoutUser, models.LeaderboardItem{})
+	copy(r.db.Leaderboards[numQuestions][position+1:], r.db.Leaderboards[numQuestions][position:])
+	r.db.Leaderboards[numQuestions][position] = leaderboardItem
 }
