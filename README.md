@@ -170,7 +170,7 @@ Response example
 }
 ```
 
-### CLI
+## CLI
 
 The CLI is build using cobra. The commands below can be used to interact with the application
 
