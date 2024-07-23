@@ -4,9 +4,9 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fasttrack_quiz_cli/dto"
-	"fasttrack_quiz_cli/util"
 	"fmt"
+	"goquiz/dto"
+	"goquiz/util"
 	"io"
 	"os"
 

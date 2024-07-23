@@ -1,4 +1,4 @@
-module fasttrack_quiz_cli
+module goquiz
 
 go 1.22.4
 

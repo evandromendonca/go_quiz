@@ -1,10 +1,9 @@
 /*
 Copyright © 2024 NAME HERE <EMAIL ADDRESS>
-
 */
 package main
 
-import "fasttrack_quiz_cli/cmd"
+import "goquiz/cmd"
 
 func main() {
 	cmd.Execute()
