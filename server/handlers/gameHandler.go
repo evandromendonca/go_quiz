@@ -4,7 +4,7 @@ import (
 	"fasttrack_quiz/dto"
 	"fasttrack_quiz/models"
 	"fmt"
-	"math/rand/v2"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"time"
@@ -150,6 +150,7 @@ func (h GameHandler) handleGetLeaderboard(c echo.Context) error {
 }
 
 func (h GameHandler) getRandomQuestions(questions []models.Question, num int) []models.Question {
+	rand := rand.New(rand.NewSource(time.Now().UnixNano()))
 	rand.Shuffle(len(questions), func(i, j int) { questions[i], questions[j] = questions[j], questions[i] })
 
 	if num > len(questions) {
